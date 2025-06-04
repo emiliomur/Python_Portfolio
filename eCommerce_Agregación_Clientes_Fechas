@@ -1,0 +1,37 @@
+""" La meta de este proyecto es obtener una serie de tablas dinámicas que indiquen la actividad comercial diaria por cliente (en monto de ventas, órdenes, piezas).
+El fin es poder automatizar el análisis con base en reportes de ventas de grandes volúmenes (>100,000 filas) cediendo la carga pesada a Python """
+
+## Bibliotecas ##
+import pandas as pd 
+import numpy as np 
+
+## Importación del documento, estandarización de tipo en cada campo, nuevos campos de fechas ##
+reporte = "ventas.xlsx"   
+df = pd.read_excel(reporte)[['id_orden', 'id_producto', 'cliente', 'precio', 'fecha']] 
+df['id_orden'] = df['id_orden'].astype('int') 
+df['id_producto'] = df['id_producto'].astype('str') 
+df['cliente'] = df['cliente'].astype('str') 
+df['cliente'] = df['cliente'].str.lower() 
+df['fecha'] = pd.to_datetime(df['fecha']) 
+df['diario'] = df['fecha'].apply(lambda x : x.strftime('%Y-%m-%d')) 
+df['año'] = df['fecha'].dt.year 
+ 
+## Creación de tablas dinámicas de ventas, órdenes y piezas por día y por cliente ## 
+ventas = pd.pivot_table(df, index='cliente', values='precio', columns='diario', aggfunc='sum', fill_value=0) 
+ordenes = pd.pivot_table(df, index='cliente', values='id_orden', columns='diario', aggfunc=pd.Series.nunique, fill_value=0) 
+pz = pd.pivot_table(df, index='cliente', values='id_producto', columns='diario', aggfunc=pd.Series.nunique, fill_value=0) 
+ 
+#cliente_tot = ventas.reset_index() 
+cliente_tot = ordenes.reset_index() 
+cliente_tot.set_index('cliente') 
+ 
+columns_to_mask = [col for col in cliente_tot.columns if col in df['diario'].unique()] 
+for column_name in columns_to_mask: 
+  if column_name in cliente_tot.columns:  
+    cliente_tot[column_name].mask(cliente_tot[column_name] > 0, 1, inplace=True) 
+
+## Exportación a doc de Excel ## 
+with pd.ExcelWriter('analisis.xlsx') as writer: 
+cliente_tot.to_excel(writer, sheet_name="clientes", index=False)  ventas.to_excel(writer, sheet_name="ventas") 
+ordenes.to_excel(writer, sheet_name="ordenes") 
+pz.to_excel(writer, sheet_name="piezas")
