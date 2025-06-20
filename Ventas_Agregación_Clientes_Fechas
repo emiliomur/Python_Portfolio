@@ -32,6 +32,7 @@ for column_name in columns_to_mask: 
 
 ## Exportación a doc de Excel ## 
 with pd.ExcelWriter('analisis.xlsx') as writer: 
-cliente_tot.to_excel(writer, sheet_name="clientes", index=False)  ventas.to_excel(writer, sheet_name="ventas") 
+cliente_tot.to_excel(writer, sheet_name="clientes", index=False)  
+ventas.to_excel(writer, sheet_name="ventas") 
 ordenes.to_excel(writer, sheet_name="ordenes") 
 pz.to_excel(writer, sheet_name="piezas")
